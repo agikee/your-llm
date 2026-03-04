@@ -1,0 +1,171 @@
+// Prisma Schema for Your LLM
+// Database schema for user context and discovery data
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ============================================================================
+// User & Authentication
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  profile       UserProfile?
+  contexts      UserContext[]
+  discoveries   DiscoverySession[]
+  comparisons   Comparison[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Profile fields
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_profiles")
+}
+
+// ============================================================================
+// Context & Discovery
+// ============================================================================
+
+enum DimensionType {
+  PERSONALITY
+  EXPERTISE
+  GOALS
+}
+
+model UserContext {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Dimension contexts
+  personalityContext String? @db.Text
+  expertiseContext   String? @db.Text
+  goalsContext       String? @db.Text
+  
+  // Full merged context
+  fullContext        String? @db.Text
+  
+  // Metadata
+  isActive   Boolean  @default(true)
+  version    Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@map("user_contexts")
+}
+
+model DiscoverySession {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Session info
+  status    String         @default("in_progress") // in_progress, completed, abandoned
+  startedAt DateTime       @default(now())
+  completedAt DateTime?
+  
+  // Relations
+  responses DimensionResponse[]
+  
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("discovery_sessions")
+}
+
+model DimensionResponse {
+  id               String       @id @default(cuid())
+  sessionId        String
+  session          DiscoverySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  // Response data
+  dimension        DimensionType
+  questionId       String
+  answer           String       @db.Text
+  answeredAt       DateTime     @default(now())
+  
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([sessionId])
+  @@index([sessionId, dimension])
+  @@map("dimension_responses")
+}
+
+// ============================================================================
+// Comparisons (Before/After Tool)
+// ============================================================================
+
+model Comparison {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Comparison data
+  userQuery       String   @db.Text
+  contextId       String?  // Optional: reference to UserContext used
+  
+  // Results
+  withoutContext  String   @db.Text
+  withContext     String   @db.Text
+  
+  // Metrics
+  relevanceScore      Float?
+  specificityScore    Float?
+  actionabilityScore  Float?
+  overallScore        Float?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("comparisons")
+}
+
+// ============================================================================
+// Usage & Analytics (Optional for Phase 1)
+// ============================================================================
+
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  eventType String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("usage_events")
+}
