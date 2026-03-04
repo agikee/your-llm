@@ -100,7 +100,7 @@ export default function ComparePage() {
           </Link>
           <Link
             href="/discover"
-            className="text-sm text-deep-300 hover:text-warm-100 transition-colors"
+            className="text-sm px-4 py-2 rounded-full bg-warm-500 hover:bg-warm-400 text-deep-950 font-medium transition-colors"
           >
             Create Context
           </Link>

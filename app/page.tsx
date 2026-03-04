@@ -205,26 +205,32 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA */}
+      {/* Final CTA with Email Capture */}
       <section className="relative z-10 px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto">
           <FadeUp>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold mb-4 sm:mb-6">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold mb-4 sm:mb-6 text-center">
               Ready to help AI
               <br />
               <span className="text-warm-500">help you better?</span>
             </h2>
-            <p className="text-deep-300 text-lg mb-8 sm:mb-10">
+            <p className="text-deep-300 text-lg mb-8 text-center">
               Start your discovery journey today.
             </p>
-            <Link
-              href="/discover"
-              className="inline-flex items-center justify-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-lg sm:text-xl transition-all hover:shadow-xl hover:shadow-warm-500/30"
-            >
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-              Start Discovery
-            </Link>
-            <p className="text-deep-500 text-sm mt-6">
+            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="flex-1 px-6 py-4 rounded-full bg-deep-800/50 border border-deep-700/50 text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50"
+              />
+              <Link
+                href="/discover"
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:shadow-warm-500/30"
+              >
+                Start Discovery
+              </Link>
+            </div>
+            <p className="text-deep-500 text-sm mt-6 text-center">
               Free to start • 15-20 minutes • Export anywhere
             </p>
           </FadeUp>
