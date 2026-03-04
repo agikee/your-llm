@@ -1,27 +1,29 @@
 /**
  * Discovery API Route
- * 
+ *
  * Handles Compass agent conversation via API using Gemini
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { validate, discoveryRequestSchema, type ConversationPhase } from '@/lib/validations';
+import { retry } from '@/lib/retry';
 
-// Gemini API Client
+// Gemini API Client with retry logic
 async function callGemini(
   messages: Array<{ role: 'system' | 'user' | 'model'; content: string }>,
   options?: { temperature?: number }
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured. Please set it in environment variables.');
   }
   const model = 'gemini-2.5-flash';
-  
+
   // Convert messages to Gemini format
   const systemParts: { text: string }[] = [];
   const contents: Array<{ role: 'user' | 'model'; parts: { text: string }[] }> = [];
-  
+
   for (const msg of messages) {
     if (msg.role === 'system') {
       systemParts.push({ text: msg.content });
@@ -42,37 +44,53 @@ async function callGemini(
     },
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  return retry(
+    async () => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${error}`);
-  }
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${error}`);
+      }
 
-  const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  
-  if (!content) {
-    throw new Error('Empty response from Gemini');
-  }
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-  return content;
+      if (!content) {
+        throw new Error('Empty response from Gemini');
+      }
+
+      return content;
+    },
+    {
+      maxRetries: 3,
+      shouldRetry: (error: Error) => {
+        // Retry on network errors or 5xx responses
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          return true;
+        }
+        // Retry on 5xx errors from Gemini API
+        if (error.message.includes('Gemini API error: 5')) {
+          return true;
+        }
+        // Retry on rate limiting
+        if (error.message.includes('429')) {
+          return true;
+        }
+        return false;
+      },
+    }
+  );
 }
-
-export type ConversationPhase = 
-  | 'introduction'
-  | 'compass'
-  | 'engine' 
-  | 'toolkit'
-  | 'proof'
-  | 'synthesis'
-  | 'complete';
 
 const SYSTEM_PROMPT = `You are Compass, a warm and insightful personal discovery guide. You help people uncover their core identity through meaningful conversation.
 
@@ -148,42 +166,47 @@ function getFallbackMessage(phase: ConversationPhase): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, message, currentPhase, conversationHistory } = body;
 
-    if (action === 'start') {
+    // Validate request
+    const validationResult = validate(discoveryRequestSchema, body);
+    if (!validationResult.success) {
+      return NextResponse.json({ error: validationResult.error }, { status: 400 });
+    }
+
+    const validatedBody = validationResult.data;
+
+    if (validatedBody.action === 'start') {
       const phase: ConversationPhase = 'introduction';
-      
+
       try {
         // Build proper message array for Gemini
         const messages: Array<{ role: 'system' | 'user' | 'model'; content: string }> = [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: getPhasePrompt(phase, '') },
         ];
-        
+
         const response = await callGemini(messages, { temperature: 0.8 });
-        
+
         return NextResponse.json({ message: response, phase });
       } catch (error) {
         console.error('Gemini error:', error);
         return NextResponse.json({ message: getFallbackMessage(phase), phase });
       }
     }
-    
-    if (action === 'respond') {
-      if (!message || !currentPhase) {
-        return NextResponse.json({ error: 'Message and currentPhase required' }, { status: 400 });
-      }
-      
+
+    if (validatedBody.action === 'respond') {
+      const { message, currentPhase, conversationHistory } = validatedBody;
+
       // Determine next phase based on user response
-      const nextPhase = determineNextPhase(currentPhase as ConversationPhase, message);
-      
+      const nextPhase = determineNextPhase(currentPhase, message);
+
       // Build conversation history in proper format
       const messages: Array<{ role: 'system' | 'user' | 'model'; content: string }> = [
         { role: 'system', content: SYSTEM_PROMPT },
       ];
-      
+
       // Add conversation history
-      if (conversationHistory && Array.isArray(conversationHistory)) {
+      if (conversationHistory) {
         for (const msg of conversationHistory) {
           messages.push({
             role: msg.role === 'agent' ? 'model' : 'user',
@@ -191,26 +214,26 @@ export async function POST(request: NextRequest) {
           });
         }
       }
-      
+
       // Add current user message
       messages.push({ role: 'user', content: message });
-      
+
       // Add phase instruction
-      messages.push({ 
-        role: 'user', 
-        content: `[Now respond as Compass in the ${nextPhase} phase. ${getPhasePrompt(nextPhase, message)}]` 
+      messages.push({
+        role: 'user',
+        content: `[Now respond as Compass in the ${nextPhase} phase. ${getPhasePrompt(nextPhase, message)}]`
       });
-      
+
       try {
         const response = await callGemini(messages, { temperature: 0.8 });
-        
+
         return NextResponse.json({ message: response, phase: nextPhase });
       } catch (error) {
         console.error('Gemini error:', error);
         return NextResponse.json({ message: getFallbackMessage(nextPhase), phase: nextPhase });
       }
     }
-    
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Discovery API error:', error);

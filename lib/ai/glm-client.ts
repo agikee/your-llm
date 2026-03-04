@@ -1,9 +1,13 @@
 /**
  * Gemini API Client
- * 
+ *
  * Wrapper for interacting with Google Gemini API
  * Model: gemini-2.5-flash-preview-05-20
+ *
+ * Includes retry logic with exponential backoff for resilience
  */
+
+import { retry, type RetryOptions } from '@/lib/retry';
 
 interface GeminiMessage {
   role: 'user' | 'model';
@@ -85,11 +89,11 @@ class GeminiClient {
   }
 
   /**
-   * Create a chat completion
+   * Create a chat completion with retry logic
    */
   async chat(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    options?: { temperature?: number; max_tokens?: number; top_p?: number }
+    options?: { temperature?: number; max_tokens?: number; top_p?: number; retryOptions?: RetryOptions }
   ): Promise<string> {
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY is not set');
@@ -107,33 +111,62 @@ class GeminiClient {
       },
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Use retry wrapper for resilience
+    return retry(
+      async () => {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = (await response.json()) as GeminiResponse;
+
+        if (data.error) {
+          throw new Error(`Gemini API error: ${data.error.message}`);
+        }
+
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!content) {
+          throw new Error('Empty response from Gemini API');
+        }
+
+        return content;
       },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = (await response.json()) as GeminiResponse;
-
-    if (data.error) {
-      throw new Error(`Gemini API error: ${data.error.message}`);
-    }
-
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!content) {
-      throw new Error('Empty response from Gemini API');
-    }
-
-    return content;
+      {
+        maxRetries: 3,
+        shouldRetry: (error: Error) => {
+          // Retry on network errors
+          if (error.message.includes('network') || error.message.includes('fetch')) {
+            return true;
+          }
+          // Retry on 5xx errors from Gemini API
+          if (error.message.includes('Gemini API error: 5')) {
+            return true;
+          }
+          // Retry on rate limiting (429)
+          if (error.message.includes('429')) {
+            return true;
+          }
+          // Use custom retry logic if provided
+          if (options?.retryOptions?.shouldRetry) {
+            return options.retryOptions.shouldRetry(error);
+          }
+          return false;
+        },
+        ...options?.retryOptions,
+      }
+    );
   }
 
   /**

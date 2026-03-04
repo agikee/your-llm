@@ -6,6 +6,7 @@ import { Send, Sparkles, RotateCcw, Save, Download, ChevronDown } from 'lucide-r
 import ContextDisplay from '@/components/discovery/ContextDisplay';
 import ShareCard from '@/components/discovery/ShareCard';
 import type { ContextModules } from '@/lib/ai/context-generator';
+import { cacheContext, getCachedContext } from '@/lib/cache';
 
 type Phase = 'introduction' | 'compass' | 'engine' | 'toolkit' | 'proof' | 'synthesis' | 'complete';
 
@@ -22,8 +23,6 @@ interface DiscoveryData {
   toolkit: { instinct: string; reasoning: string };
   proof?: { accomplishment: string; process: string; meaning: string; obstacles?: string[] };
 }
-
-const sessionId = `session-${Date.now()}`;
 
 function TypingIndicator() {
   return (
@@ -126,11 +125,14 @@ export default function DiscoverPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<Phase>('compass');
   const [started, setStarted] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [discoveryData, setDiscoveryData] = useState<DiscoveryData | null>(null);
   const [contextModules, setContextModules] = useState<ContextModules | null>(null);
   const [isGeneratingContext, setIsGeneratingContext] = useState(false);
   const [contextError, setContextError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -140,6 +142,16 @@ export default function DiscoverPage() {
       });
     }
   }, [messages, isTyping]);
+
+  // Check for cached context on mount
+  useEffect(() => {
+    const cached = getCachedContext(sessionIdRef.current);
+    if (cached?.modules) {
+      setContextModules(cached.modules);
+      setDiscoveryData(cached.discoveryData as DiscoveryData | null);
+      setCurrentPhase('complete');
+    }
+  }, []);
 
   // Generate context when discovery completes
   useEffect(() => {
@@ -158,13 +170,20 @@ export default function DiscoverPage() {
       const res = await fetch('/api/context/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, discoveryData }),
+        body: JSON.stringify({ sessionId: sessionIdRef.current, discoveryData }),
       });
 
       const data = await res.json();
 
       if (data.success && data.modules) {
         setContextModules(data.modules);
+        // Cache the generated context
+        cacheContext(sessionIdRef.current, {
+          id: sessionIdRef.current,
+          modules: data.modules,
+          discoveryData,
+          createdAt: new Date().toISOString(),
+        });
       } else {
         setContextError(data.error || 'Failed to generate context');
       }
@@ -177,17 +196,17 @@ export default function DiscoverPage() {
   };
 
   const startDiscovery = useCallback(async () => {
-    setStarted(true);
-    setIsTyping(true);
+    setIsStarting(true);
 
     try {
       const res = await fetch('/api/discovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, action: 'start' }),
+        body: JSON.stringify({ sessionId: sessionIdRef.current, action: 'start' }),
       });
       const data = await res.json();
-      
+
+      setStarted(true);
       setMessages([{
         id: `msg-${Date.now()}`,
         role: 'agent',
@@ -199,6 +218,7 @@ export default function DiscoverPage() {
         setCurrentPhase(data.phase);
       }
     } catch {
+      setStarted(true);
       setMessages([{
         id: `msg-${Date.now()}`,
         role: 'agent',
@@ -207,11 +227,11 @@ export default function DiscoverPage() {
       }]);
     }
 
-    setIsTyping(false);
+    setIsStarting(false);
   }, []);
 
   const sendMessage = useCallback(async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isSending) return;
 
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -224,20 +244,21 @@ export default function DiscoverPage() {
     setMessages(newMessages);
     setInput('');
     setIsTyping(true);
+    setIsSending(true);
 
     try {
       const res = await fetch('/api/discovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'respond', 
+        body: JSON.stringify({
+          action: 'respond',
           message: userMessage.content,
           currentPhase,
           conversationHistory: newMessages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();
-      
+
       setMessages(prev => [...prev, {
         id: `msg-${Date.now() + 1}`,
         role: 'agent',
@@ -260,7 +281,8 @@ export default function DiscoverPage() {
     }
 
     setIsTyping(false);
-  }, [input, isTyping, currentPhase]);
+    setIsSending(false);
+  }, [input, isSending, currentPhase, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -519,13 +541,23 @@ Generated by Your LLM Discovery on ${new Date().toLocaleDateString()}
           </p>
 
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isStarting ? 1 : 1.02 }}
+            whileTap={{ scale: isStarting ? 1 : 0.98 }}
             onClick={startDiscovery}
-            className="inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-base sm:text-lg shadow-xl shadow-warm-500/25 transition-all"
+            disabled={isStarting}
+            className="inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-base sm:text-lg shadow-xl shadow-warm-500/25 transition-all disabled:opacity-80"
           >
-            <Sparkles className="w-5 h-5" />
-            Start Discovery
+            {isStarting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-deep-950/30 border-t-deep-950 rounded-full animate-spin" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Start Discovery
+              </>
+            )}
           </motion.button>
 
           <p className="text-xs sm:text-sm text-deep-500 mt-6 sm:mt-8">
@@ -573,10 +605,14 @@ Generated by Your LLM Discovery on ${new Date().toLocaleDateString()}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={sendMessage}
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isSending}
               className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-warm-500 text-deep-950 flex items-center justify-center shadow-lg shadow-warm-500/25 disabled:opacity-50 transition-all"
             >
-              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+              {isSending ? (
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-deep-950/30 border-t-deep-950 rounded-full animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
             </motion.button>
           </div>
           <p className="text-xs text-deep-500 mt-2 sm:mt-3 text-center hidden sm:block">

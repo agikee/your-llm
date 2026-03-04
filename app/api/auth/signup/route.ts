@@ -1,31 +1,30 @@
 import { createServerSupabaseClient } from "@/lib/database/supabase";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { validate, signUpRequestSchema } from "@/lib/validations";
+
+import type { SignUpRequest } from "@/lib/validations";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
 
-    if (!email || !password) {
+    // Validate request using Zod schema
+    const validationResult = validate(signUpRequestSchema, body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: validationResult.error },
         { status: 400 }
       );
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 }
-      );
-    }
+    const { email, password, name } = validationResult.data as SignUpRequest;
 
-    // Password validation
-    if (password.length < 6) {
+    // Check for special character
+    const specialCharRegex = /[!@#$%^&*()_+\-=\[\]{}|;:'"\\|<>,.\/?]/;
+    if (!specialCharRegex.test(password)) {
       return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
+        { error: "Password must contain at least one special character" },
         { status: 400 }
       );
     }
@@ -40,11 +39,16 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name: name || undefined,
+        },
+      },
     });
 
     if (error) {
       console.error("Signup error:", error);
-      
+
       // Handle specific error cases
       if (error.message.includes("already registered")) {
         return NextResponse.json(
@@ -52,7 +56,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      
+
       return NextResponse.json(
         { error: error.message || "Failed to create account" },
         { status: 400 }
@@ -63,8 +67,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       user: data.user,
       session: data.session,
-      message: data.session 
-        ? "Account created successfully" 
+      message: data.session
+        ? "Account created successfully"
         : "Account created. Please check your email to confirm your account.",
     });
   } catch (error) {

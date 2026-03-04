@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validate, compareRequestSchema } from '@/lib/validations';
+import { retry } from '@/lib/retry';
 
-// Gemini API Client
+// Gemini API Client with retry logic
 async function callGemini(
   messages: Array<{ role: 'system' | 'user' | 'model'; content: string }>,
   options?: { temperature?: number; max_tokens?: number }
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured. Please set it in environment variables.');
   }
 
   const model = 'gemini-2.5-flash';
-  
+
   // Convert messages to Gemini format
   const systemParts: { text: string }[] = [];
   const contents: Array<{ role: 'user' | 'model'; parts: { text: string }[] }> = [];
-  
+
   for (const msg of messages) {
     if (msg.role === 'system') {
       systemParts.push({ text: msg.content });
@@ -37,27 +39,52 @@ async function callGemini(
     },
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  return retry(
+    async () => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${error}`);
-  }
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${error}`);
+      }
 
-  const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  
-  if (!content) {
-    throw new Error('Empty response from Gemini');
-  }
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-  return content;
+      if (!content) {
+        throw new Error('Empty response from Gemini');
+      }
+
+      return content;
+    },
+    {
+      maxRetries: 3,
+      shouldRetry: (error: Error) => {
+        // Retry on network errors or 5xx responses
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          return true;
+        }
+        // Retry on 5xx errors from Gemini API
+        if (error.message.includes('Gemini API error: 5')) {
+          return true;
+        }
+        // Retry on rate limiting
+        if (error.message.includes('429')) {
+          return true;
+        }
+        return false;
+      },
+    }
+  );
 }
 
 // Sample context for demo
@@ -75,15 +102,17 @@ Alex is building a personal brand and online presence. They're looking for actio
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { question, context } = body;
 
-    if (!question || typeof question !== 'string') {
+    // Validate request
+    const validationResult = validate(compareRequestSchema, body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Question is required' },
+        { error: validationResult.error },
         { status: 400 }
       );
     }
 
+    const { question, context } = validationResult.data;
     const useContext = context || sampleContext;
 
     // Make both API calls in parallel
@@ -96,8 +125,8 @@ export async function POST(request: NextRequest) {
 
       // With context
       callGemini([
-        { 
-          role: 'system', 
+        {
+          role: 'system',
           content: `You are a helpful AI assistant with deep knowledge of your user's context.
 
 Here is what you know about your user:

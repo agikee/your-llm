@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
 import { siteConfig } from '@/config/site';
+import { ErrorBoundaryWrapper } from '@/components/ErrorBoundary';
 import './globals.css';
 
 const dmSans = DM_Sans({ 
@@ -47,7 +48,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${playfair.variable} font-sans antialiased`}>
-        {children}
+        <ErrorBoundaryWrapper>
+          {children}
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

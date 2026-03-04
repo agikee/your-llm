@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Compass, Settings2, Wrench, Sparkles, ArrowRight, Star } from 'lucide-react';
+import { Compass, Settings2, Wrench, Sparkles, ArrowRight, Star, CheckCircle, Loader2 } from 'lucide-react';
 
 // Fade up animation for sections
 function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -18,7 +19,56 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
+// Email validation
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
 export default function HomePage() {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate email
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      // Log to console (can be replaced with actual API call or Supabase integration)
+      console.log('Email capture:', {
+        email,
+        timestamp: new Date().toISOString(),
+        source: 'homepage_cta',
+      });
+
+      // Simulate a brief delay for UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      setIsSuccess(true);
+      setEmail('');
+    } catch (err) {
+      console.error('Email capture error:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-deep-950 text-warm-100 grain relative overflow-hidden">
       {/* Ambient background */}
@@ -217,19 +267,60 @@ export default function HomePage() {
             <p className="text-deep-300 text-lg mb-8 text-center">
               Start your discovery journey today.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-6 py-4 rounded-full bg-deep-800/50 border border-deep-700/50 text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50"
-              />
-              <Link
-                href="/discover"
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:shadow-warm-500/30"
+
+            {isSuccess ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center gap-4"
               >
-                Start Discovery
-              </Link>
-            </div>
+                <div className="flex items-center gap-3 text-sage-400">
+                  <CheckCircle className="w-6 h-6" />
+                  <span className="text-lg font-medium">Thanks! We'll be in touch.</span>
+                </div>
+                <Link
+                  href="/discover"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:shadow-warm-500/30"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Start Discovery Now
+                </Link>
+              </motion.div>
+            ) : (
+              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                <div className="flex-1">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder="Enter your email"
+                    disabled={isSubmitting}
+                    className="w-full px-6 py-4 rounded-full bg-deep-800/50 border border-deep-700/50 text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 disabled:opacity-50"
+                  />
+                  {error && (
+                    <p className="text-red-400 text-sm mt-2 text-center">{error}</p>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:shadow-warm-500/30 disabled:opacity-80"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Joining...
+                    </>
+                  ) : (
+                    'Join Waitlist'
+                  )}
+                </button>
+              </form>
+            )}
+
             <p className="text-deep-500 text-sm mt-6 text-center">
               Free to start • 15-20 minutes • Export anywhere
             </p>

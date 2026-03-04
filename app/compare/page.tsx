@@ -1,18 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  ArrowLeft, 
-  Lightbulb, 
+import {
+  Sparkles,
+  ArrowLeft,
+  Lightbulb,
   Loader2,
   AlertCircle,
   Zap,
   FileText,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
+import {
+  cacheQuestionComparison,
+  getCachedQuestionComparison,
+  getRecentContext,
+  type CachedQuestion
+} from '@/lib/cache';
+
+// Skeleton component for loading states
+function SkeletonText({ className = '' }: { className?: string }) {
+  return (
+    <div className={`bg-deep-700/50 rounded animate-pulse ${className}`} />
+  );
+}
+
+function ComparisonSkeleton() {
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      {/* Without Context Skeleton */}
+      <div className="bg-deep-800/30 backdrop-blur-sm rounded-2xl border border-deep-700/50 p-6 animate-pulse">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-2 h-2 rounded-full bg-deep-600" />
+          <SkeletonText className="h-4 w-28" />
+        </div>
+        <div className="space-y-3">
+          <SkeletonText className="h-4 w-full" />
+          <SkeletonText className="h-4 w-11/12" />
+          <SkeletonText className="h-4 w-4/5" />
+          <SkeletonText className="h-4 w-full" />
+          <SkeletonText className="h-4 w-3/4" />
+        </div>
+      </div>
+
+      {/* With Context Skeleton */}
+      <div className="bg-warm-500/5 backdrop-blur-sm rounded-2xl border border-warm-500/20 p-6 relative overflow-hidden animate-pulse">
+        <div className="absolute inset-0 bg-warm-500/5 blur-3xl scale-150" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-warm-500/50" />
+            <SkeletonText className="h-4 w-28" />
+          </div>
+          <div className="space-y-3">
+            <SkeletonText className="h-4 w-full" />
+            <SkeletonText className="h-4 w-full" />
+            <SkeletonText className="h-4 w-11/12" />
+            <SkeletonText className="h-4 w-full" />
+            <SkeletonText className="h-4 w-4/5" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const sampleContext = `[Communication]
 When interacting with Alex, be collaborative and supportive. Alex values thorough explanations and appreciates context before recommendations. Use examples to illustrate points.
@@ -36,6 +89,15 @@ export default function ComparePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ withoutContext: string; withContext: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+
+  // Load recent context from cache on mount
+  useEffect(() => {
+    const recentContext = getRecentContext();
+    if (recentContext?.modules?.comprehensive) {
+      setUserContext(recentContext.modules.comprehensive);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,12 +106,25 @@ export default function ComparePage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setIsFromCache(false);
+
+    // Check cache first
+    const cachedResult = getCachedQuestionComparison(question, userContext);
+    if (cachedResult) {
+      setResult({
+        withoutContext: cachedResult.withoutContextResponse,
+        withContext: cachedResult.withContextResponse,
+      });
+      setIsFromCache(true);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/compare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           question,
           context: userContext.trim() || undefined // Use sample if empty
         }),
@@ -62,6 +137,14 @@ export default function ComparePage() {
 
       const data = await response.json();
       setResult(data);
+
+      // Cache the result
+      cacheQuestionComparison(
+        question,
+        userContext,
+        data.withoutContext,
+        data.withContext
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -238,15 +321,77 @@ export default function ComparePage() {
             )}
           </AnimatePresence>
 
+          {/* Loading State - Skeleton */}
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+              >
+                <ComparisonSkeleton />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Results */}
           <AnimatePresence>
-            {result && (
+            {result && !isLoading && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 className="space-y-6"
               >
+                {/* Cache indicator */}
+                {isFromCache && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-center gap-2 text-sm text-deep-400"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Results from cache • </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsFromCache(false);
+                        // Clear cache for this question and refetch
+                        const handleSubmitFresh = async () => {
+                          setIsLoading(true);
+                          setError(null);
+                          setResult(null);
+                          try {
+                            const response = await fetch('/api/compare', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                question,
+                                context: userContext.trim() || undefined
+                              }),
+                            });
+                            if (!response.ok) {
+                              const errorData = await response.json();
+                              throw new Error(errorData.error || 'Failed to get comparison');
+                            }
+                            const data = await response.json();
+                            setResult(data);
+                            cacheQuestionComparison(question, userContext, data.withoutContext, data.withContext);
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Something went wrong');
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        };
+                        handleSubmitFresh();
+                      }}
+                      className="text-warm-500 hover:text-warm-400 transition-colors"
+                    >
+                      Refresh
+                    </button>
+                  </motion.div>
+                )}
+
                 {/* Comparison Grid */}
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Without Context */}

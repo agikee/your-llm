@@ -1,4 +1,4 @@
-import { createClient as createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
