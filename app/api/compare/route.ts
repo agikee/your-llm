@@ -5,9 +5,10 @@ async function callGemini(
   messages: Array<{ role: 'system' | 'user' | 'model'; content: string }>,
   options?: { temperature?: number; max_tokens?: number }
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyB18jkpFyxxE1VlSfwpAZKCA95gHfhruII';
+  const apiKey = process.env.GEMINI_API_KEY;
+  
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured');
+    throw new Error('GEMINI_API_KEY is not configured. Please set it in environment variables.');
   }
 
   const model = 'gemini-2.5-flash';
