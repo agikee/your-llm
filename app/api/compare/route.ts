@@ -5,7 +5,7 @@ async function callGemini(
   messages: Array<{ role: 'system' | 'user' | 'model'; content: string }>,
   options?: { temperature?: number; max_tokens?: number }
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyB18jkpFyxxE1VlSfwpAZKCA95gHfhruII';
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured');
   }
@@ -32,7 +32,7 @@ async function callGemini(
     systemInstruction: systemParts.length > 0 ? { parts: systemParts } : undefined,
     generationConfig: {
       temperature: options?.temperature ?? 0.7,
-      maxOutputTokens: options?.max_tokens ?? 1000,
+      maxOutputTokens: options?.max_tokens ?? 2000,
     },
   };
 
