@@ -5,6 +5,12 @@
  */
 
 import { glmClient } from './glm-client';
+import {
+  extractCompassData,
+  extractEngineData,
+  extractToolkitData,
+  extractProofData,
+} from './extract-structured-data';
 
 export type ConversationPhase = 
   | 'introduction'
@@ -136,8 +142,8 @@ export class CompassAgent {
       phase: this.state.phase,
     });
 
-    // Extract context (simplified)
-    this.extractContext(this.state.phase, response);
+    // Extract context using AI (async)
+    await this.extractContext(this.state.phase, response);
 
     // Advance phase if response is substantial
     if (this.shouldAdvancePhase(response)) {
@@ -145,34 +151,23 @@ export class CompassAgent {
     }
   }
 
-  private extractContext(phase: ConversationPhase, response: string): void {
+  private async extractContext(phase: ConversationPhase, response: string): Promise<void> {
     switch (phase) {
       case 'compass':
-        this.state.capturedContext.compass = {
-          value: response.slice(0, 200),
-          beneficiaries: '',
-          emotionalLanguage: [],
-        };
+        const compassData = await extractCompassData(response);
+        this.state.capturedContext.compass = compassData;
         break;
       case 'engine':
-        this.state.capturedContext.engine = {
-          beautifulProblem: response.slice(0, 200),
-          processDriver: '',
-        };
+        const engineData = await extractEngineData(response);
+        this.state.capturedContext.engine = engineData;
         break;
       case 'toolkit':
-        this.state.capturedContext.toolkit = {
-          instinct: response.slice(0, 200),
-          reasoning: '',
-        };
+        const toolkitData = await extractToolkitData(response);
+        this.state.capturedContext.toolkit = toolkitData;
         break;
       case 'proof':
-        this.state.capturedContext.proof = {
-          accomplishment: response.slice(0, 200),
-          process: '',
-          meaning: '',
-          obstacles: [],
-        };
+        const proofData = await extractProofData(response);
+        this.state.capturedContext.proof = proofData;
         break;
     }
   }
