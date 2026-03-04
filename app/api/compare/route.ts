@@ -32,7 +32,7 @@ async function callGemini(
     systemInstruction: systemParts.length > 0 ? { parts: systemParts } : undefined,
     generationConfig: {
       temperature: options?.temperature ?? 0.7,
-      maxOutputTokens: options?.max_tokens ?? 2000,
+      // No maxOutputTokens limit - let Gemini respond fully
     },
   };
 

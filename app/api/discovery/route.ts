@@ -9,13 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Gemini API Client
 async function callGemini(
   messages: Array<{ role: 'system' | 'user' | 'model'; content: string }>,
-  options?: { temperature?: number; max_tokens?: number }
+  options?: { temperature?: number }
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyB18jkpFyxxE1VlSfwpAZKCA95gHfhruII';
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
-
   const model = 'gemini-2.5-flash';
   
   // Convert messages to Gemini format
@@ -37,8 +33,8 @@ async function callGemini(
     contents,
     systemInstruction: systemParts.length > 0 ? { parts: systemParts } : undefined,
     generationConfig: {
-      temperature: options?.temperature ?? 0.7,
-      maxOutputTokens: options?.max_tokens ?? 1000,
+      temperature: options?.temperature ?? 0.8,
+      // No maxOutputTokens limit - let Gemini respond fully
     },
   };
 
@@ -74,52 +70,48 @@ export type ConversationPhase =
   | 'synthesis'
   | 'complete';
 
-const SYSTEM_PROMPT = `You are Compass, a skilled interviewer and personal insight guide.
+const SYSTEM_PROMPT = `You are Compass, a warm and insightful personal discovery guide. You help people uncover their core identity through meaningful conversation.
 
-Your role: Help people uncover their core identity through guided conversation about:
-- Compass: Values and purpose (what matters to them)
-- Engine: Passions and motivations (their "beautiful problem")
-- Toolkit: Strengths and instincts (how they naturally operate)
+Your conversation has three phases:
+1. COMPASS - Explore their values and what matters to them
+2. ENGINE - Discover their passions and what energizes them  
+3. TOOLKIT - Understand their natural strengths and approaches
 
-Communication style:
-- Warm and conversational
-- Genuinely curious
-- Patient and encouraging
-- Use natural language
-- Ask ONE follow-up question at a time
-- Be concise - 2-3 sentences max per response
+Guidelines:
+- Be warm, curious, and encouraging
+- Reference what they just said before asking your next question
+- Ask ONE thoughtful follow-up question at a time
+- Keep responses conversational (2-4 sentences)
+- Show genuine interest in their answers
+- Help them discover insights about themselves
 
-IMPORTANT: 
-- Keep responses SHORT (2-3 sentences)
-- Ask only ONE question per response
-- Reference what the user just said before asking your next question
-- Be warm but efficient`;
+Start by welcoming them warmly and asking about what change they'd be proud to make in the world.`;
 
-function getPhasePrompt(phase: ConversationPhase, userJustSaid: string): string {
+function getPhasePrompt(phase: ConversationPhase, userResponse: string): string {
   switch (phase) {
     case 'introduction':
-      return `Welcome the user warmly and ask: "What change or contribution would you be most proud to make in your life?" Keep it brief and inviting.`;
+      return `Welcome the user warmly and ask: "What change or contribution would you be most proud to make in the world?" Be inviting and warm.`;
     
     case 'compass':
-      return `The user just shared: "${userJustSaid.slice(0, 150)}". Acknowledge this, then ask ONE follow-up: "What does that look like in practice? Who benefits most?"`;
+      return `The user shared: "${userResponse}". Acknowledge what they said with genuine interest. Then ask ONE follow-up to go deeper: "That's beautiful - what does that actually look like in practice? And who benefits most from this?"`;
     
     case 'engine':
-      return `The user shared about their passions. Acknowledge it, then ask: "What type of challenge or problem energizes you most? What about the process of tackling it excites you?"`;
+      return `Now explore their passions. The user shared about their values. Acknowledge it, then ask: "Every person has a 'beautiful problem' - a type of challenge they're naturally drawn to. What's yours? And what about the PROCESS of working on it energizes you?"`;
     
     case 'toolkit':
-      return `Acknowledge their response, then ask: "In an unfamiliar situation, what's your go-to approach or tool? Why does that feel natural?"`;
+      return `Now explore their strengths. Acknowledge their previous answer, then ask: "Imagine you're dropped into a completely new situation with no playbook. What's the VERY FIRST approach or tool you reach for? Why does that feel natural to you?"`;
     
     case 'proof':
-      return `Acknowledge their response, then ask: "Tell me about an accomplishment where you felt at your absolute best. What made it special?"`;
+      return `Now ask for a story. Say: "I'd love to hear about a moment where you felt 'yeah, THAT'S me at my best.' Tell me what happened, what you did, and why it was meaningful to you."`;
     
     case 'synthesis':
-      return `Synthesize what you've learned about their values, passions, and strengths. Show how they connect. Ask: "Does this resonate with you?"`;
+      return `Synthesize what you've learned. Connect their values, passions, and strengths. Say something like: "Based on our conversation, I see that [reference their values], you're energized by [reference their passions], and you naturally approach things by [reference their strengths]. These connect because... Does this resonate with you?"`;
     
     case 'complete':
-      return `Thank them warmly. Say their context has been captured and they can use it with any AI.`;
+      return `Thank them warmly. Say their personal context has been captured and they can use it with any AI for more personalized conversations.`;
     
     default:
-      return `Ask a thoughtful follow-up question.`;
+      return `Ask a thoughtful follow-up question based on what they shared.`;
   }
 }
 
@@ -127,9 +119,9 @@ function determineNextPhase(currentPhase: ConversationPhase, userResponse: strin
   const phases: ConversationPhase[] = ['introduction', 'compass', 'engine', 'toolkit', 'proof', 'synthesis', 'complete'];
   const currentIndex = phases.indexOf(currentPhase);
   
-  // If user gave a substantial response (10+ words), advance phase
-  const wordCount = userResponse.trim().split(/\s+/).length;
-  if (wordCount >= 10 && currentIndex < phases.length - 1) {
+  // Advance phase if user gave a meaningful response (5+ words)
+  const wordCount = userResponse.trim().split(/\s+/).filter(w => w.length > 0).length;
+  if (wordCount >= 5 && currentIndex < phases.length - 1) {
     return phases[currentIndex + 1];
   }
   
@@ -138,13 +130,13 @@ function determineNextPhase(currentPhase: ConversationPhase, userResponse: strin
 
 function getFallbackMessage(phase: ConversationPhase): string {
   const fallbacks: Record<ConversationPhase, string> = {
-    introduction: "Hey there! I'm Compass. Let's discover what makes you uniquely you. What change or contribution would you be most proud to make?",
-    compass: "That's meaningful. What does that look like in practice? Who benefits most?",
-    engine: "What type of challenge energizes you most? What about the process excites you?",
-    toolkit: "In a new situation, what's your go-to approach? Why does that feel natural?",
-    proof: "Tell me about an accomplishment where you felt at your best. What made it special?",
-    synthesis: "I see a pattern in your answers. Does your path feel clear now?",
-    complete: "Thank you for sharing! Your context has been captured.",
+    introduction: "Hey there! I'm Compass, and I'm here to help you discover what makes you uniquely you. Let's start with something meaningful: What change or contribution would you be most proud to make in the world?",
+    compass: "That's really meaningful. Tell me more - what does that actually look like in practice? And who benefits most from this?",
+    engine: "Fascinating. Now I'm curious - what type of challenge or problem energizes you most? What about working on it excites you?",
+    toolkit: "Great insights! Now imagine you're in a completely new situation with no playbook. What's your go-to approach? Why does that feel natural?",
+    proof: "I'd love to hear about a moment where you felt at your absolute best. What happened, what did you do, and why was it meaningful?",
+    synthesis: "Based on everything you've shared, I see a beautiful pattern emerging in your values, passions, and natural strengths. Does this journey feel clear to you now?",
+    complete: "Thank you so much for sharing! Your personal context has been captured. You can now use it with any AI for more personalized, meaningful conversations.",
   };
   return fallbacks[phase];
 }
@@ -158,10 +150,13 @@ export async function POST(request: NextRequest) {
       const phase: ConversationPhase = 'introduction';
       
       try {
-        const response = await callGemini([
+        // Build proper message array for Gemini
+        const messages: Array<{ role: 'system' | 'user' | 'model'; content: string }> = [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: getPhasePrompt(phase, '') },
-        ], { temperature: 0.8, max_tokens: 200 });
+        ];
+        
+        const response = await callGemini(messages, { temperature: 0.8 });
         
         return NextResponse.json({ message: response, phase });
       } catch (error) {
@@ -178,20 +173,32 @@ export async function POST(request: NextRequest) {
       // Determine next phase based on user response
       const nextPhase = determineNextPhase(currentPhase as ConversationPhase, message);
       
-      // Build conversation context
-      const history = conversationHistory || [];
-      const conversationText = history
-        .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
-        .join('\n\n');
+      // Build conversation history in proper format
+      const messages: Array<{ role: 'system' | 'user' | 'model'; content: string }> = [
+        { role: 'system', content: SYSTEM_PROMPT },
+      ];
+      
+      // Add conversation history
+      if (conversationHistory && Array.isArray(conversationHistory)) {
+        for (const msg of conversationHistory) {
+          messages.push({
+            role: msg.role === 'agent' ? 'model' : 'user',
+            content: msg.content,
+          });
+        }
+      }
+      
+      // Add current user message
+      messages.push({ role: 'user', content: message });
+      
+      // Add phase instruction
+      messages.push({ 
+        role: 'user', 
+        content: `[Now respond as Compass in the ${nextPhase} phase. ${getPhasePrompt(nextPhase, message)}]` 
+      });
       
       try {
-        const response = await callGemini([
-          { role: 'system', content: SYSTEM_PROMPT },
-          { 
-            role: 'user', 
-            content: `Conversation so far:\n${conversationText}\n\nUser just said: "${message}"\n\nCurrent phase: ${nextPhase}\n\n${getPhasePrompt(nextPhase, message)}` 
-          },
-        ], { temperature: 0.8, max_tokens: 200 });
+        const response = await callGemini(messages, { temperature: 0.8 });
         
         return NextResponse.json({ message: response, phase: nextPhase });
       } catch (error) {
