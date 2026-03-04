@@ -4,7 +4,7 @@
 
 export const GLM_CONFIG = {
   baseUrl: process.env.GLM_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4',
-  model: 'glm-4-flash',
+  model: 'GLM-4.7-FlashX',
   temperature: 0.7,
   maxTokens: 1000,
 };
