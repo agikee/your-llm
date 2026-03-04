@@ -191,7 +191,7 @@ export default function ComparePage() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative z-10 px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main id="main-content" className="relative z-10 px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="max-w-6xl mx-auto">
           
           {/* Header */}
@@ -240,6 +240,7 @@ export default function ComparePage() {
                 placeholder="Paste your generated context here, or use the sample to see the difference..."
                 className="w-full h-32 px-4 py-3 bg-deep-900/50 border border-deep-700 rounded-xl text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 resize-none transition-all text-sm"
                 disabled={isLoading}
+                aria-label="Your personal context"
               />
               <p className="text-xs text-deep-500 mt-2">
                 💡 No context? We'll use a sample. Or <Link href="/discover" className="text-warm-500 hover:underline">create your own</Link>
@@ -257,6 +258,7 @@ export default function ComparePage() {
                 placeholder="e.g., How should I think about my next career move?"
                 className="w-full h-24 px-4 py-3 bg-deep-900/50 border border-deep-700 rounded-xl text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 resize-none transition-all"
                 disabled={isLoading}
+                aria-label="Enter your question to compare AI responses"
               />
               
               {/* Example Questions */}
@@ -271,6 +273,7 @@ export default function ComparePage() {
                       key={i}
                       type="button"
                       onClick={() => handleExampleClick(example)}
+                      aria-label={`Try example question: ${example}`}
                       className="text-xs px-3 py-1.5 rounded-full bg-deep-700/50 border border-deep-600 text-deep-300 hover:text-warm-100 hover:border-warm-500/30 transition-all"
                       disabled={isLoading}
                     >
@@ -285,6 +288,7 @@ export default function ComparePage() {
                 <button
                   type="submit"
                   disabled={!question.trim() || isLoading}
+                  aria-label="Compare AI responses with and without context"
                   className="inline-flex items-center gap-2 px-8 py-3 bg-warm-500 hover:bg-warm-400 disabled:bg-deep-700 text-deep-950 disabled:text-deep-400 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-warm-500/25 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
@@ -342,6 +346,8 @@ export default function ComparePage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 className="space-y-6"
+                aria-live="polite"
+                aria-label="Comparison results"
               >
                 {/* Cache indicator */}
                 {isFromCache && (

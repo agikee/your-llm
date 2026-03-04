@@ -200,7 +200,7 @@ export default function DashboardPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative z-10 px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main id="main-content" className="relative z-10 px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="max-w-4xl mx-auto">
           {/* Loading State */}
           {isLoading ? (
@@ -244,6 +244,7 @@ export default function DashboardPage() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  aria-label="Sign in to save your context"
                   className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-deep-800/50 border border-deep-700/50 text-deep-300 hover:text-warm-100 hover:border-warm-500/30 transition-all"
                 >
                   <LogIn className="w-4 h-4" />
@@ -263,6 +264,8 @@ export default function DashboardPage() {
                           <button
                             key={ctx.id}
                             onClick={() => setActiveContext(ctx)}
+                            aria-label={`Switch to context ${i + 1}`}
+                            aria-pressed={activeContext?.id === ctx.id}
                             className={`text-xs px-3 py-1.5 rounded-full transition-all ${
                               activeContext?.id === ctx.id
                                 ? 'bg-warm-500 text-deep-950 font-medium'
@@ -319,6 +322,7 @@ export default function DashboardPage() {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={handleCopyFull}
+                          aria-label={copied ? "Context copied to clipboard" : "Copy your full context to clipboard"}
                           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-lg font-medium transition-colors"
                         >
                           {copied ? (
@@ -336,6 +340,7 @@ export default function DashboardPage() {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
+                          aria-label="Download your context as a text file"
                           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-deep-700/50 hover:bg-deep-700 text-warm-100 rounded-lg font-medium transition-colors"
                         >
                           <FileText className="w-4 h-4" />
@@ -397,6 +402,7 @@ export default function DashboardPage() {
                   >
                     <Link
                       href="/discover"
+                      aria-label="Start discovery to create your first AI context"
                       className="inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-base sm:text-lg shadow-xl shadow-warm-500/25 transition-all"
                     >
                       <Sparkles className="w-5 h-5" />

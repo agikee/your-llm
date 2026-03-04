@@ -104,7 +104,7 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 px-4 sm:px-6 lg:px-8 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24">
+      <section id="main-content" className="relative z-10 px-4 sm:px-6 lg:px-8 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
             {/* Left: Text */}
@@ -124,6 +124,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/discover"
+                  aria-label="Start your discovery journey"
                   className="inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-warm-500 hover:bg-warm-400 text-deep-950 rounded-full font-semibold text-base sm:text-lg transition-all hover:shadow-xl hover:shadow-warm-500/30"
                 >
                   <Sparkles className="w-5 h-5" />
