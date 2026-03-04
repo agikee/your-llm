@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import { siteConfig } from '@/config/site';
 import { ErrorBoundaryWrapper } from '@/components/ErrorBoundary';
 import './globals.css';
@@ -54,6 +55,7 @@ export default function RootLayout({
         <ErrorBoundaryWrapper>
           {children}
         </ErrorBoundaryWrapper>
+        <Analytics />
       </body>
     </html>
   );

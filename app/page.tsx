@@ -302,7 +302,7 @@ export default function HomePage() {
                     aria-label="Email address"
                     aria-describedby={error ? 'email-error' : undefined}
                     aria-invalid={!!error}
-                    className="w-full px-6 py-4 rounded-full bg-deep-800/50 border border-deep-700/50 text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 disabled:opacity-50"
+                    className="w-full px-6 py-4 rounded-full bg-deep-800/50 border border-deep-700/50 text-warm-100 placeholder:text-deep-400 focus:outline-none focus:ring-2 focus:ring-warm-500/50 disabled:opacity-50"
                   />
                   {error && (
                     <p id="email-error" role="alert" className="text-red-400 text-sm mt-2 text-center">{error}</p>
@@ -325,7 +325,7 @@ export default function HomePage() {
               </form>
             )}
 
-            <p className="text-deep-500 text-sm mt-6 text-center">
+            <p className="text-deep-400 text-sm mt-6 text-center">
               Free to start • 15-20 minutes • Export anywhere
             </p>
           </FadeUp>
@@ -338,7 +338,7 @@ export default function HomePage() {
           <Link href="/" className="text-lg font-serif font-semibold text-warm-100">
             Your LLM
           </Link>
-          <p className="text-sm text-deep-500">
+          <p className="text-sm text-deep-400">
             © {new Date().getFullYear()} Your LLM. All rights reserved.
           </p>
         </div>

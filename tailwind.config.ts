@@ -15,10 +15,10 @@ const config: Config = {
           50: '#f8f8fa',
           100: '#e8e8ed',
           200: '#c9c9d4',
-          300: '#b8b8c8', // ~8:1 contrast on deep-950 - AA compliant for normal text
-          400: '#8a8aa0', // ~4.5:1 contrast on deep-950 - AA compliant
-          500: '#6a6a82', // ~3:1 contrast on deep-950 - AA for large text only
-          600: '#363649',
+          300: '#b8b8c8', // ~9.7:1 contrast on deep-950 - WCAG AA compliant for normal text
+          400: '#8a8aa0', // ~5.6:1 contrast on deep-950 - WCAG AA compliant for normal text
+          500: '#6a6a82', // ~3.6:1 contrast on deep-950 - WCAG AA for large text ONLY (18px+ or 14px bold)
+          600: '#363649', // ~1.6:1 contrast - NOT accessible for text, use for decorative/borders only
           700: '#2d2d3d',
           800: '#262633',
           900: '#1a1a2e',

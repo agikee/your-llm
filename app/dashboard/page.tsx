@@ -411,7 +411,7 @@ export default function DashboardPage() {
                     </Link>
                   </motion.div>
 
-                  <p className="text-deep-500 text-sm mt-6">
+                  <p className="text-deep-400 text-sm mt-6">
                     Free to start • 15-20 minutes • Export anywhere
                   </p>
                 </motion.div>
@@ -427,7 +427,7 @@ export default function DashboardPage() {
           <Link href="/" className="text-lg font-serif font-semibold text-warm-100">
             Your LLM
           </Link>
-          <p className="text-sm text-deep-500">
+          <p className="text-sm text-deep-400">
             © {new Date().getFullYear()} Your LLM. All rights reserved.
           </p>
         </div>

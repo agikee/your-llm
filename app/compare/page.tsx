@@ -238,11 +238,11 @@ export default function ComparePage() {
                 value={userContext}
                 onChange={(e) => setUserContext(e.target.value)}
                 placeholder="Paste your generated context here, or use the sample to see the difference..."
-                className="w-full h-32 px-4 py-3 bg-deep-900/50 border border-deep-700 rounded-xl text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 resize-none transition-all text-sm"
+                className="w-full h-32 px-4 py-3 bg-deep-900/50 border border-deep-700 rounded-xl text-warm-100 placeholder:text-deep-400 focus:outline-none focus:ring-2 focus:ring-warm-500/50 resize-none transition-all text-sm"
                 disabled={isLoading}
                 aria-label="Your personal context"
               />
-              <p className="text-xs text-deep-500 mt-2">
+              <p className="text-xs text-deep-400 mt-2">
                 💡 No context? We'll use a sample. Or <Link href="/discover" className="text-warm-500 hover:underline">create your own</Link>
               </p>
             </div>
@@ -256,7 +256,7 @@ export default function ComparePage() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="e.g., How should I think about my next career move?"
-                className="w-full h-24 px-4 py-3 bg-deep-900/50 border border-deep-700 rounded-xl text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 resize-none transition-all"
+                className="w-full h-24 px-4 py-3 bg-deep-900/50 border border-deep-700 rounded-xl text-warm-100 placeholder:text-deep-400 focus:outline-none focus:ring-2 focus:ring-warm-500/50 resize-none transition-all"
                 disabled={isLoading}
                 aria-label="Enter your question to compare AI responses"
               />

@@ -270,7 +270,7 @@ Take the discovery journey at Your LLM and find out what makes you uniquely you.
               </div>
               <span className="text-warm-200 font-serif font-semibold text-lg">Your LLM</span>
             </div>
-            <div className="text-xs text-deep-500 uppercase tracking-wider">Discovery</div>
+            <div className="text-xs text-deep-400 uppercase tracking-wider">Discovery</div>
           </div>
 
           {/* Main content - centered and flexible */}
@@ -331,7 +331,7 @@ Take the discovery journey at Your LLM and find out what makes you uniquely you.
             transition={{ delay: 0.6 }}
             className="mt-6 pt-4 border-t border-deep-700/30"
           >
-            <p className="text-center text-deep-500 text-xs">
+            <p className="text-center text-deep-400 text-xs">
               Discover your AI personality at yourllm.ai
             </p>
           </motion.div>
