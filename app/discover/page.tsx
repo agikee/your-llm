@@ -164,6 +164,8 @@ export default function DiscoverPage() {
   // Generate context when discovery completes
   useEffect(() => {
     if (currentPhase === 'complete' && discoveryData && !contextModules && !isGeneratingContext) {
+      // Track discovery completed
+      trackEvent('discovery_completed');
       generateContext();
     }
   }, [currentPhase, discoveryData]);
@@ -185,6 +187,8 @@ export default function DiscoverPage() {
 
       if (data.success && data.modules) {
         setContextModules(data.modules);
+        // Track context generated
+        trackEvent('context_generated');
         // Cache the generated context
         cacheContext(sessionIdRef.current, {
           id: sessionIdRef.current,
@@ -205,6 +209,9 @@ export default function DiscoverPage() {
 
   const startDiscovery = useCallback(async () => {
     setIsStarting(true);
+
+    // Track discovery started
+    trackEvent('discovery_started');
 
     try {
       const res = await fetch('/api/discovery', {

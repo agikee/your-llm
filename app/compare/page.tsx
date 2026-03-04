@@ -20,6 +20,7 @@ import {
   getRecentContext,
   type CachedQuestion
 } from '@/lib/cache';
+import { trackEvent } from '@/lib/analytics';
 
 // Skeleton component for loading states
 function SkeletonText({ className = '' }: { className?: string }) {
@@ -107,6 +108,9 @@ export default function ComparePage() {
     setError(null);
     setResult(null);
     setIsFromCache(false);
+
+    // Track compare question asked
+    trackEvent('compare_question_asked');
 
     // Check cache first
     const cachedResult = getCachedQuestionComparison(question, userContext);
