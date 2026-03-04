@@ -1,138 +1,139 @@
 /**
- * GLM API Client
+ * Gemini API Client
  * 
- * Wrapper for interacting with the Zhipu AI GLM API
- * Base URL: https://open.bigmodel.cn/api/paas/v4
+ * Wrapper for interacting with Google Gemini API
+ * Model: gemini-2.5-flash-preview-05-20
  */
 
-interface GLMMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+interface GeminiMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
 }
 
-interface GLMChatRequest {
-  model: string;
-  messages: GLMMessage[];
-  temperature?: number;
-  top_p?: number;
-  max_tokens?: number;
-  stream?: boolean;
+interface GeminiRequest {
+  contents: GeminiMessage[];
+  generationConfig?: {
+    temperature?: number;
+    maxOutputTokens?: number;
+    topP?: number;
+  };
+  systemInstruction?: {
+    parts: { text: string }[];
+  };
 }
 
-interface GLMChatResponse {
-  id: string;
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    message: GLMMessage;
-    finish_reason: string;
+interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: { text: string }[];
+      role: string;
+    };
+    finishReason: string;
   }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
   error?: {
+    code: number;
     message: string;
-    type: string;
-    code: string;
+    status: string;
   };
 }
 
-interface GLMConfig {
+interface GeminiConfig {
   apiKey?: string;
-  baseUrl?: string;
   model?: string;
 }
 
-// Model priorities: FlashX (fastest) -> Flash (fallback)
-const MODEL_PRIORITY = ['GLM-4.7-FlashX', 'GLM-4.7-Flash', 'glm-4-flash'];
-
-class GLMClient {
+class GeminiClient {
   private apiKey: string;
-  private baseUrl: string;
-  private preferredModel: string;
-  private currentModelIndex: number = 0;
+  private model: string;
 
-  constructor(config?: GLMConfig) {
-    this.apiKey = config?.apiKey || process.env.GLM_API_KEY || '';
-    this.baseUrl = config?.baseUrl || process.env.GLM_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4';
-    this.preferredModel = config?.model || MODEL_PRIORITY[0];
-    
-    // Find the index of the preferred model
-    this.currentModelIndex = MODEL_PRIORITY.indexOf(this.preferredModel);
-    if (this.currentModelIndex === -1) this.currentModelIndex = 0;
+  constructor(config?: GeminiConfig) {
+    this.apiKey = config?.apiKey || process.env.GEMINI_API_KEY || '';
+    this.model = config?.model || 'gemini-2.5-flash-preview-05-20';
 
     if (!this.apiKey) {
-      console.warn('GLM_API_KEY is not set. AI features will not work.');
+      console.warn('GEMINI_API_KEY is not set. AI features will not work.');
     }
-  }
-
-  private get currentModel(): string {
-    return MODEL_PRIORITY[this.currentModelIndex] || MODEL_PRIORITY[0];
   }
 
   /**
-   * Create a chat completion with automatic model fallback
+   * Convert messages to Gemini format
    */
-  async chat(messages: GLMMessage[], options?: Partial<GLMChatRequest>): Promise<string> {
-    let lastError: Error | null = null;
-    
-    // Try each model in priority order
-    while (this.currentModelIndex < MODEL_PRIORITY.length) {
-      const model = this.currentModel;
-      
-      try {
-        console.log(`[GLM] Trying model: ${model}`);
-        
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages,
-            temperature: options?.temperature ?? 0.7,
-            top_p: options?.top_p ?? 0.9,
-            max_tokens: options?.max_tokens ?? 1000,
-            stream: false,
-            ...options,
-          } as GLMChatRequest),
+  private convertMessages(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>): {
+    systemInstruction?: { parts: { text: string }[] };
+    contents: GeminiMessage[];
+  } {
+    const systemMessages: string[] = [];
+    const geminiMessages: GeminiMessage[] = [];
+
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemMessages.push(msg.content);
+      } else {
+        geminiMessages.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }],
         });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`GLM API error (${model}): ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json() as GLMChatResponse;
-        
-        if (data.error) {
-          throw new Error(`GLM API error: ${data.error.message}`);
-        }
-
-        const content = data.choices[0]?.message?.content;
-        if (content) {
-          console.log(`[GLM] Success with model: ${model}`);
-          return content;
-        }
-        
-        throw new Error('Empty response from GLM API');
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`[GLM] Model ${model} failed:`, lastError.message);
-        
-        // Try next model
-        this.currentModelIndex++;
       }
     }
 
-    // All models failed, reset index and throw
-    this.currentModelIndex = 0;
-    throw lastError || new Error('All GLM models failed');
+    return {
+      systemInstruction: systemMessages.length > 0 
+        ? { parts: systemMessages.map(text => ({ text })) }
+        : undefined,
+      contents: geminiMessages,
+    };
+  }
+
+  /**
+   * Create a chat completion
+   */
+  async chat(
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    options?: { temperature?: number; max_tokens?: number; top_p?: number }
+  ): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('GEMINI_API_KEY is not set');
+    }
+
+    const { systemInstruction, contents } = this.convertMessages(messages);
+
+    const request: GeminiRequest = {
+      contents,
+      systemInstruction,
+      generationConfig: {
+        temperature: options?.temperature ?? 0.7,
+        maxOutputTokens: options?.max_tokens ?? 1000,
+        topP: options?.top_p ?? 0.9,
+      },
+    };
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = (await response.json()) as GeminiResponse;
+
+    if (data.error) {
+      throw new Error(`Gemini API error: ${data.error.message}`);
+    }
+
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) {
+      throw new Error('Empty response from Gemini API');
+    }
+
+    return content;
   }
 
   /**
@@ -146,7 +147,7 @@ class GLMClient {
   }
 
   /**
-   * Health check for GLM API
+   * Health check for Gemini API
    */
   async healthCheck(): Promise<boolean> {
     try {
@@ -163,13 +164,15 @@ class GLMClient {
    * Get current model being used
    */
   getModel(): string {
-    return this.currentModel;
+    return this.model;
   }
 }
 
 // Export singleton instance
-export const glmClient = new GLMClient();
+export const geminiClient = new GeminiClient();
+
+// Also export as glmClient for backward compatibility
+export const glmClient = geminiClient;
 
 // Export class for testing
-export { GLMClient };
-export type { GLMMessage, GLMChatRequest, GLMChatResponse };
+export { GeminiClient };
