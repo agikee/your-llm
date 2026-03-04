@@ -219,7 +219,8 @@ export default function DiscoverPage() {
       phase: currentPhase,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsTyping(true);
 
@@ -227,7 +228,12 @@ export default function DiscoverPage() {
       const res = await fetch('/api/discovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, action: 'respond', message: userMessage.content }),
+        body: JSON.stringify({ 
+          action: 'respond', 
+          message: userMessage.content,
+          currentPhase,
+          conversationHistory: messages.map(m => ({ role: m.role, content: m.content })),
+        }),
       });
       const data = await res.json();
       
@@ -240,16 +246,6 @@ export default function DiscoverPage() {
 
       if (data.phase) {
         setCurrentPhase(data.phase);
-      }
-
-      // If the API returns captured context, store it
-      if (data.capturedContext) {
-        setDiscoveryData(prev => ({
-          compass: data.capturedContext.compass || prev?.compass || { value: '', beneficiaries: '' },
-          engine: data.capturedContext.engine || prev?.engine || { beautifulProblem: '', processDriver: '' },
-          toolkit: data.capturedContext.toolkit || prev?.toolkit || { instinct: '', reasoning: '' },
-          proof: data.capturedContext.proof || prev?.proof,
-        }));
       }
     } catch {
       setTimeout(() => {
