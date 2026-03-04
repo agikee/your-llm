@@ -18,9 +18,17 @@ const phases: { id: Phase; label: string }[] = [
 
 export function ProgressIndicator({ currentPhase, className = '' }: ProgressIndicatorProps) {
   const currentIndex = phases.findIndex((p) => p.id === currentPhase);
+  const progressValue = Math.round(((currentIndex + 1) / phases.length) * 100);
 
   return (
-    <div className={`flex items-center justify-center gap-3 ${className}`}>
+    <div
+      role="progressbar"
+      aria-label="Discovery progress"
+      aria-valuenow={progressValue}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className={`flex items-center justify-center gap-3 ${className}`}
+    >
       {phases.map((phase, index) => {
         const isCompleted = index < currentIndex;
         const isCurrent = index === currentIndex;
@@ -34,6 +42,7 @@ export function ProgressIndicator({ currentPhase, className = '' }: ProgressIndi
               className="flex items-center gap-2"
             >
               <div
+                aria-hidden="true"
                 className={`
                   relative w-2.5 h-2.5 rounded-full transition-all duration-500
                   ${isCompleted ? 'bg-compass-gold' : ''}

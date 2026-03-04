@@ -76,6 +76,9 @@ export function ResponseInput({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
+            aria-disabled={disabled}
+            aria-label="Your response"
+            aria-describedby="keyboard-hints char-count"
             rows={1}
             className={`
               w-full min-h-[80px] px-6 py-4
@@ -91,6 +94,8 @@ export function ResponseInput({
 
           {/* Character count */}
           <div
+            id="char-count"
+            aria-live="polite"
             className={`
               absolute bottom-3 left-6 text-xs transition-colors duration-200
               ${isAtLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-slate-600'}
@@ -102,7 +107,7 @@ export function ResponseInput({
 
         {/* Action buttons */}
         <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-slate-500">
+          <div id="keyboard-hints" className="text-sm text-slate-500">
             Press <kbd className="px-1.5 py-0.5 text-xs bg-slate-800 rounded border border-slate-700">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 text-xs bg-slate-800 rounded border border-slate-700">Shift+Enter</kbd> for new line
           </div>
 
@@ -113,6 +118,8 @@ export function ResponseInput({
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSkip}
                 disabled={disabled}
+                aria-disabled={disabled}
+                aria-label="Skip this question"
                 className={`
                   flex items-center gap-2 px-4 py-2
                   text-sm text-slate-400 hover:text-slate-300
@@ -132,6 +139,8 @@ export function ResponseInput({
               whileTap={{ scale: 0.98 }}
               onClick={handleSubmit}
               disabled={disabled || !value.trim()}
+              aria-disabled={disabled || !value.trim()}
+              aria-label="Send your response"
               className={`
                 flex items-center gap-2 px-6 py-2.5
                 text-sm font-medium text-slate-900

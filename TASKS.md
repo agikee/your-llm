@@ -122,13 +122,18 @@ Generated from code review on 2026-03-04
 - [ ] `lib/ai/compass-agent.ts` - 删除或使用 `CompassAgent` 类
 
 ### CODE-05: 添加基本测试覆盖
-- [ ] 设置 Jest/Vitest
- - [ ] 为工具函数添加单元测试
- - [ ] 为 API 背由添加集成测试
+- [x] 设置 Vitest (happy-dom)
+- [x] 为工具函数添加单元测试 (utils, retry, validations)
+- [x] 为 API 背由添加集成测试 (auth/signup, discovery)
+- [x] 总计: 124 tests passing
 
 ### CODE-06: 改进 Compass Agent 中的数据提取
- - [ ] 使用 AI 提取结构化数据而非截断
- - [ ] 文件: `lib/ai/compass-agent.ts`
+- [x] 使用 AI 提取结构化数据而非截断
+- [x] 已实现在 `lib/ai/extract-structured-data.ts`
+- [x] 提取: compass (value, beneficiaries, emotionalLanguage)
+- [x] 提取: engine (beautifulProblem, processDriver)
+- [x] 提取: toolkit (instinct, reasoning)
+- [x] 提取: proof (accomplishment, process, meaning, obstacles)
 
 ---
 

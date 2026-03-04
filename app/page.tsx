@@ -287,7 +287,7 @@ export default function HomePage() {
                 </Link>
               </motion.div>
             ) : (
-              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <form onSubmit={handleEmailSubmit} aria-label="Join waitlist" className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
                 <div className="flex-1">
                   <input
                     type="email"
@@ -298,10 +298,13 @@ export default function HomePage() {
                     }}
                     placeholder="Enter your email"
                     disabled={isSubmitting}
+                    aria-label="Email address"
+                    aria-describedby={error ? 'email-error' : undefined}
+                    aria-invalid={!!error}
                     className="w-full px-6 py-4 rounded-full bg-deep-800/50 border border-deep-700/50 text-warm-100 placeholder:text-deep-500 focus:outline-none focus:ring-2 focus:ring-warm-500/50 disabled:opacity-50"
                   />
                   {error && (
-                    <p className="text-red-400 text-sm mt-2 text-center">{error}</p>
+                    <p id="email-error" role="alert" className="text-red-400 text-sm mt-2 text-center">{error}</p>
                   )}
                 </div>
                 <button

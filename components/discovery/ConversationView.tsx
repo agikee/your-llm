@@ -116,6 +116,10 @@ export function ConversationView({
   return (
     <div
       ref={scrollRef}
+      role="log"
+      aria-label="Conversation messages"
+      aria-live="polite"
+      aria-atomic="true"
       className={`flex-1 overflow-y-auto no-scrollbar px-6 py-8 ${className}`}
     >
       <div className="max-w-4xl mx-auto">
@@ -128,7 +132,11 @@ export function ConversationView({
             )
           )}
         </AnimatePresence>
-        {isTyping && <TypingIndicator />}
+        {isTyping && (
+          <div aria-label="Assistant is typing" role="status">
+            <TypingIndicator />
+          </div>
+        )}
       </div>
     </div>
   );
