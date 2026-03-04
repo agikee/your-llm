@@ -19,13 +19,13 @@ import {
 // Sample context for demo
 const sampleContext = `
 [Communication]
-When interacting with Jeff, be direct and action-oriented. He values efficiency and dislikes fluff. Use concrete examples and avoid abstract concepts.
+When interacting with Alex, be collaborative and supportive. Alex values thorough explanations and appreciates context before recommendations. Use examples to illustrate points.
 
 [Expertise]
-Jeff is a product leader with 10+ years experience in B2B SaaS. He understands technical concepts but prefers business-focused discussions.
+Alex is a creative professional with experience in design and content creation. They understand visual concepts and storytelling, preferring practical examples over theory.
 
 [Goals]
-Jeff is building an AI-powered platform. He's looking for practical implementation advice, not theoretical discussions.
+Alex is building a personal brand and online presence. They're looking for actionable advice on content strategy and audience engagement.
 `;
 
 const exampleQuestions = [

@@ -16,48 +16,49 @@ import {
 } from 'lucide-react';
 import { ContextCard, UsageStats } from '@/components/dashboard';
 
-// Mock data
+// Mock data - sample user context
 const mockUser = {
-  name: 'Jeff',
-  email: 'jeff@example.com',
+  name: 'Alex',
+  email: 'alex@example.com',
   avatar: null,
 };
 
 const mockContext = {
   id: 'ctx_1',
   name: 'My Context',
-  comprehensive: `When interacting with Jeff, prioritize direct, actionable insights over abstract explanations. Jeff values depth over breadth in discussions and appreciates innovative thinking that questions assumptions.
+  comprehensive: `When interacting with Alex, be collaborative and supportive. Alex values thorough explanations and appreciates context before recommendations.
 
-Jeff has an international background (Korea, Russia, Houston, Canada) which makes him adaptable and excited by uncertainty and change. He builds strong relationships through intentional connection and values meaningful impact over superficial engagement.
+Alex is a creative professional with experience in design and content creation. They understand visual concepts and storytelling, preferring practical examples over theoretical discussions.
 
 Key principles:
-• Be direct and actionable - avoid abstract explanations
-• Go deep rather than broad on topics
-• Question assumptions and think innovatively
-• Respect his international perspective and adaptability
-• Focus on meaningful, intentional interactions`,
+• Provide context before recommendations
+• Use visual and practical examples
+• Support collaborative exploration
+• Value thoroughness over speed
+• Connect concepts to real-world applications`,
   modules: {
-    communication: `Jeff values direct, actionable insights over abstract explanations. Prefers depth over breadth in discussions. Appreciates innovative thinking and questioning assumptions.
+    communication: `Alex values collaborative, supportive communication. Prefers thorough explanations with context before recommendations. Appreciates visual and practical examples.
 
 Communication style:
-• Be straightforward and practical
-• Dive deep into topics rather than skimming surface
-• Challenge conventional thinking
-• Be authentic and intentional`,
-    expertise: `Deep expertise in technology and building products. Experience with international teams spanning Korea, Russia, Houston, and Canada. Strong at bridging technology and people to create meaningful solutions.
+• Start with context, then give recommendations
+• Use examples and analogies
+• Support exploration and iteration
+• Be patient and thorough`,
+    expertise: `Creative professional with expertise in design and content creation. Strong visual thinking skills and storytelling ability. Experience translating complex ideas into accessible content.
 
 Core competencies:
-• Technology and product development
-• Cross-cultural team leadership
-• Building bridges between technical and human needs
-• International perspective on innovation`,
-    goals: `Leading SNU students program in Silicon Valley, helping Korean students navigate the tech ecosystem. Building network for professional growth and creating meaningful impact. Working toward contributions that benefit the wider community.
+• Visual design and aesthetics
+• Content strategy and storytelling
+• Creative problem-solving
+• Audience engagement
+• Brand development`,
+    goals: `Building a personal brand and online presence. Creating meaningful content that resonates with target audience. Looking to grow audience and establish thought leadership in creative industry.
 
 Current focus areas:
-• SNU students Silicon Valley program
-• Network building and professional growth
-• Creating accessible, meaningful impact
-• Bridging communities across cultures`,
+• Content strategy and consistency
+• Growing social media presence
+• Building email newsletter
+• Establishing unique creative voice`,
   },
   createdAt: '2024-03-01',
   lastUsed: '2024-03-03',
