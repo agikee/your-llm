@@ -48,7 +48,7 @@ class GeminiClient {
 
   constructor(config?: GeminiConfig) {
     this.apiKey = config?.apiKey || process.env.GEMINI_API_KEY || '';
-    this.model = config?.model || 'gemini-2.5-flash-preview-05-20';
+    this.model = config?.model || 'gemini-2.5-flash';
 
     if (!this.apiKey) {
       console.warn('GEMINI_API_KEY is not set. AI features will not work.');

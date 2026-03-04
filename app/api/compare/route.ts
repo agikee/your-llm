@@ -10,7 +10,7 @@ async function callGemini(
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  const model = 'gemini-2.5-flash-preview-05-20';
+  const model = 'gemini-2.5-flash';
   
   // Convert messages to Gemini format
   const systemParts: { text: string }[] = [];
