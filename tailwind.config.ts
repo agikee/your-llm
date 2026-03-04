@@ -15,9 +15,9 @@ const config: Config = {
           50: '#f8f8fa',
           100: '#e8e8ed',
           200: '#c9c9d4',
-          300: '#9a9aad',
-          400: '#65657e',
-          500: '#46465c',
+          300: '#b8b8c8', // ~8:1 contrast on deep-950 - AA compliant for normal text
+          400: '#8a8aa0', // ~4.5:1 contrast on deep-950 - AA compliant
+          500: '#6a6a82', // ~3:1 contrast on deep-950 - AA for large text only
           600: '#363649',
           700: '#2d2d3d',
           800: '#262633',
