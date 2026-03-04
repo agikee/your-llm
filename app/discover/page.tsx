@@ -232,7 +232,7 @@ export default function DiscoverPage() {
           action: 'respond', 
           message: userMessage.content,
           currentPhase,
-          conversationHistory: messages.map(m => ({ role: m.role, content: m.content })),
+          conversationHistory: newMessages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();

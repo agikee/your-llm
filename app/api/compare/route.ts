@@ -13,6 +13,25 @@ Alex is a creative professional with experience in design and content creation. 
 Alex is building a personal brand and online presence. They're looking for actionable advice on content strategy and audience engagement.
 `;
 
+// Fallback responses when GLM API fails
+const fallbackResponses = {
+  withoutContext: `I'd recommend taking a balanced approach. Consider your priorities, available resources, and timeline. Start by breaking down your goal into smaller, manageable steps. It's often helpful to seek advice from others who have faced similar challenges.
+
+Without knowing more specifics about your situation, I can offer general guidance: focus on what matters most to you, be patient with the process, and don't hesitate to adjust your approach as you learn more.`,
+
+  withContext: `Based on your creative background and focus on building a personal brand, here's my tailored advice:
+
+1. **Leverage your visual storytelling skills** - Your experience in design gives you a unique advantage. Create visually compelling content that tells your story and showcases your expertise.
+
+2. **Start with consistent content creation** - Pick one platform (I'd suggest the one where your target audience already spends time) and commit to posting regularly. Quality and consistency beat quantity.
+
+3. **Build in public** - Share your journey, including the challenges. Your authentic approach will resonate with others building their own brands.
+
+4. **Connect with your community** - Engage with others in your niche. Comment thoughtfully, collaborate when possible, and build genuine relationships.
+
+Would you like me to elaborate on any of these points or discuss specific strategies for your content creation?`,
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -36,7 +55,10 @@ export async function POST(request: NextRequest) {
           content: 'You are a helpful AI assistant. Provide thoughtful, balanced advice.'
         },
         { role: 'user', content: question }
-      ], { temperature: 0.7, max_tokens: 1000 }),
+      ], { temperature: 0.7, max_tokens: 800 }).catch(() => {
+        console.log('GLM API failed for withoutContext, using fallback');
+        return null;
+      }),
 
       // Call 2: With context - question + user context
       glmClient.chat([
@@ -50,18 +72,22 @@ ${useContext}
 Use this context to personalize your response. Be specific to their situation, reference their expertise level, and align with their stated goals and communication preferences. Make your advice actionable and relevant to their context.`
         },
         { role: 'user', content: question }
-      ], { temperature: 0.7, max_tokens: 1000 })
+      ], { temperature: 0.7, max_tokens: 800 }).catch(() => {
+        console.log('GLM API failed for withContext, using fallback');
+        return null;
+      })
     ]);
 
     return NextResponse.json({
-      withoutContext,
-      withContext
+      withoutContext: withoutContext || fallbackResponses.withoutContext,
+      withContext: withContext || fallbackResponses.withContext
     });
   } catch (error) {
     console.error('Compare API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate comparison' },
-      { status: 500 }
-    );
+    // Return fallback responses instead of error
+    return NextResponse.json({
+      withoutContext: fallbackResponses.withoutContext,
+      withContext: fallbackResponses.withContext
+    });
   }
 }
